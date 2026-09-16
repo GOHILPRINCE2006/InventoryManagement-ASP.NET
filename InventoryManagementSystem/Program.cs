@@ -10,6 +10,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 var app = builder.Build();
 
+// ============ SEED DATABASE ============
+using (var scope = app.Services.CreateScope())
+{
+    await DbSeeder.SeedAsync(app.Services);
+}
+// =======================================
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
