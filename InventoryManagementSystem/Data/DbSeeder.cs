@@ -1,4 +1,5 @@
 ﻿using InventoryManagementSystem.Models.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryManagementSystem.Data
@@ -9,46 +10,49 @@ namespace InventoryManagementSystem.Data
         {
             using var scope = services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-            // Apply any pending migrations
+            // Apply pending migrations
             await context.Database.MigrateAsync();
 
             // ============ SEED ROLES ============
-            if (!await context.Roles.AnyAsync())
+            string[] roles = { "Admin", "Manager", "Employee" };
+            foreach (var roleName in roles)
             {
-                context.Roles.AddRange(
-                    new Role { Name = "Admin", Description = "Full system access" },
-                    new Role { Name = "Manager", Description = "Manages inventory, products, purchases, sales" },
-                    new Role { Name = "Employee", Description = "Handles sales and purchases" }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============ SEED DEFAULT ADMIN USER ============
-            if (!await context.Users.AnyAsync(u => u.Email == "admin@ims.com"))
-            {
-                var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-
-                var admin = new ApplicationUser
+                if (!await roleManager.RoleExistsAsync(roleName))
                 {
-                    FullName = "System Administrator",
-                    Email = "admin@ims.com",
-                    Phone = "0000000000",
-                    Address = "Head Office",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    RoleId = adminRole.Id
-                };
-
-                // Use built-in password hasher
-                var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationUser>();
-                admin.PasswordHash = hasher.HashPassword(admin, "Admin@123");
-
-                context.Users.Add(admin);
-                await context.SaveChangesAsync();
+                    await roleManager.CreateAsync(new Role
+                    {
+                        Name = roleName,
+                        Description = $"{roleName} role"
+                    });
+                }
             }
 
-            // ============ SEED SAMPLE CATEGORIES ============
+            // ============ SEED DEFAULT USERS ============
+            await CreateUserIfNotExists(
+                userManager,
+                email: "admin@ims.com",
+                password: "Admin@123",
+                fullName: "System Administrator",
+                role: "Admin");
+
+            await CreateUserIfNotExists(
+                userManager,
+                email: "manager@ims.com",
+                password: "Manager@123",
+                fullName: "Default Manager",
+                role: "Manager");
+
+            await CreateUserIfNotExists(
+                userManager,
+                email: "employee@ims.com",
+                password: "Employee@123",
+                fullName: "Default Employee",
+                role: "Employee");
+
+            // ============ SEED CATEGORIES ============
             if (!await context.Categories.AnyAsync())
             {
                 context.Categories.AddRange(
@@ -58,6 +62,39 @@ namespace InventoryManagementSystem.Data
                     new Category { Name = "Groceries", Description = "Food and daily essentials" }
                 );
                 await context.SaveChangesAsync();
+            }
+        }
+
+        private static async Task CreateUserIfNotExists(
+            UserManager<ApplicationUser> userManager,
+            string email,
+            string password,
+            string fullName,
+            string role)
+        {
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing != null) return;
+
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                FullName = fullName,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(user, password);
+
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(user, role);
+            }
+            else
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                throw new Exception($"Failed to create user {email}: {errors}");
             }
         }
     }

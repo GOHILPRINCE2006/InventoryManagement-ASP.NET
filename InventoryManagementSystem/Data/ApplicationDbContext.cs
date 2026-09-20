@@ -1,18 +1,16 @@
 ﻿using InventoryManagementSystem.Models.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryManagementSystem.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Role, string>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }
 
-        // ============ DbSets ============
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<ApplicationUser> Users { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
@@ -25,37 +23,22 @@ namespace InventoryManagementSystem.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(modelBuilder); 
 
-            // ============ ROLE ============
-            modelBuilder.Entity<Role>(entity =>
-            {
-                entity.HasIndex(r => r.Name).IsUnique();
-                entity.Property(r => r.Name).IsRequired().HasMaxLength(50);
-            });
+            modelBuilder.Entity<ApplicationUser>().ToTable("Users");
+            modelBuilder.Entity<Role>().ToTable("Roles");
+            modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserRole<string>>().ToTable("UserRoles");
+            modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserClaim<string>>().ToTable("UserClaims");
+            modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserLogin<string>>().ToTable("UserLogins");
+            modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserToken<string>>().ToTable("UserTokens");
+            modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>>().ToTable("RoleClaims");
 
-            // ============ USER ============
-            modelBuilder.Entity<ApplicationUser>(entity =>
-            {
-                entity.HasIndex(u => u.Email).IsUnique();
-                entity.Property(u => u.Email).IsRequired().HasMaxLength(150);
-                entity.Property(u => u.FullName).IsRequired().HasMaxLength(100);
-                entity.Property(u => u.PasswordHash).IsRequired();
-
-                entity.HasOne(u => u.Role)
-                    .WithMany(r => r.Users)
-                    .HasForeignKey(u => u.RoleId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            // ============ CATEGORY ============
             modelBuilder.Entity<Category>(entity =>
             {
                 entity.HasIndex(c => c.Name).IsUnique();
                 entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
             });
 
-            // ============ PRODUCT ============
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasIndex(p => p.SKU).IsUnique();
@@ -78,16 +61,13 @@ namespace InventoryManagementSystem.Data
             modelBuilder.Entity<Supplier>(entity =>
             {
                 entity.Property(s => s.Name).IsRequired().HasMaxLength(100);
-                entity.HasIndex(s => s.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
             });
 
-            // ============ CUSTOMER ============
             modelBuilder.Entity<Customer>(entity =>
             {
                 entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
             });
 
-            // ============ PURCHASE ============
             modelBuilder.Entity<Purchase>(entity =>
             {
                 entity.HasIndex(p => p.PurchaseNumber).IsUnique();
@@ -105,7 +85,6 @@ namespace InventoryManagementSystem.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // ============ PURCHASE ITEM ============
             modelBuilder.Entity<PurchaseItem>(entity =>
             {
                 entity.Property(pi => pi.UnitPrice).HasPrecision(18, 2);
@@ -122,7 +101,6 @@ namespace InventoryManagementSystem.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // ============ SALE ============
             modelBuilder.Entity<Sale>(entity =>
             {
                 entity.HasIndex(s => s.InvoiceNumber).IsUnique();
@@ -158,7 +136,6 @@ namespace InventoryManagementSystem.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // ============ STOCK TRANSACTION ============
             modelBuilder.Entity<StockTransaction>(entity =>
             {
                 entity.Property(st => st.Type).IsRequired().HasMaxLength(10);

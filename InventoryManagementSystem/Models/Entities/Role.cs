@@ -1,18 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace InventoryManagementSystem.Models.Entities
 {
-    public class Role
+    public class Role : IdentityRole
     {
-        public int Id { get; set; }
 
-        [Required, StringLength(50)]
-        public string Name { get; set; } = string.Empty; 
-
-        [StringLength(255)]
         public string? Description { get; set; }
 
-       
-        public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
+        public Role() : base() { }
+
+        public Role(string roleName) : base(roleName) { }
     }
 }

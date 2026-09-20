@@ -20,7 +20,7 @@ namespace InventoryManagementSystem.Models.Entities
         [StringLength(255)]
         public string? Notes { get; set; }
 
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
         public ApplicationUser User { get; set; } = null!;
 
         public DateTime TransactionDate { get; set; } = DateTime.UtcNow;

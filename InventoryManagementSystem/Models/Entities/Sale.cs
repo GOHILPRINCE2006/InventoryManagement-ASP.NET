@@ -24,7 +24,7 @@ namespace InventoryManagementSystem.Models.Entities
         public int CustomerId { get; set; }
         public Customer Customer { get; set; } = null!;
 
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
         public ApplicationUser User { get; set; } = null!;
 
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
