@@ -1,0 +1,77 @@
+﻿@{
+    var current = ViewContext.RouteData.Values["controller"]?.ToString();
+    string Active(string c) => current == c ? "fw-bold text-primary" : "";
+}
+
+<h6 class="text-muted text-uppercase small mb-3">Menu</h6>
+
+<ul class="nav flex-column">
+    <li class="nav-item mb-1">
+        <a asp-controller="Home" asp-action="Index" class="nav-link p-0 @Active("Home")">
+            Dashboard
+        </a>
+    </li>
+
+    <li class="nav-item mb-1">
+        <a asp-controller="Products" asp-action="Index" class="nav-link p-0 @Active("Products")">
+            Products
+        </a>
+    </li>
+
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <li class="nav-item mb-1">
+            <a asp-controller="Categories" asp-action="Index" class="nav-link p-0 @Active("Categories")">
+                Categories
+            </a>
+        </li>
+
+        <li class="nav-item mb-1">
+            <a asp-controller="Suppliers" asp-action="Index" class="nav-link p-0 @Active("Suppliers")">
+                Suppliers
+            </a>
+        </li>
+    }
+
+    <li class="nav-item mb-1">
+        <a asp-controller="Customers" asp-action="Index" class="nav-link p-0 @Active("Customers")">
+            Customers
+        </a>
+    </li>
+
+    <li class="nav-item mb-1">
+        <a asp-controller="Purchases" asp-action="Index" class="nav-link p-0 @Active("Purchases")">
+            Purchases
+        </a>
+    </li>
+
+    <li class="nav-item mb-1">
+        <a asp-controller="Sales" asp-action="Index" class="nav-link p-0 @Active("Sales")">
+            Sales
+        </a>
+    </li>
+
+    <li class="nav-item mb-1">
+        <a asp-controller="Stock" asp-action="Index" class="nav-link p-0 @Active("Stock")">
+            Stock
+        </a>
+    </li>
+
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <li class="nav-item mb-1">
+            <a asp-controller="Reports" asp-action="Index" class="nav-link p-0 @Active("Reports")">
+                Reports
+            </a>
+        </li>
+    }
+
+    @if (User.IsInRole("Admin"))
+    {
+        <li class="nav-item mb-1">
+            <a asp-controller="Users" asp-action="Index" class="nav-link p-0 @Active("Users")">
+                Users
+            </a>
+        </li>
+    }
+</ul>

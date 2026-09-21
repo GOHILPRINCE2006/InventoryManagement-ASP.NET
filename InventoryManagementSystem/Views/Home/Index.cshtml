@@ -1,8 +1,73 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@if (User.Identity != null && User.Identity.IsAuthenticated)
+{
+    <h2>Welcome, @User.Identity.Name</h2>
+    <p class="text-muted">
+        You are signed in as
+        @if (User.IsInRole("Admin"))
+        {
+            <span class="badge bg-danger">Admin</span>
+        }
+        else if (User.IsInRole("Manager"))
+        {
+            <span class="badge bg-warning text-dark">Manager</span>
+        }
+        else
+        {
+            <span class="badge bg-info">Employee</span>
+        }
+    </p>
+
+    <hr />
+
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Products</h6>
+                    <h3>0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Sales</h6>
+                    <h3>0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Customers</h6>
+                    <h3>0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Low Stock</h6>
+                    <h3>0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-3">
+        <strong>Phase 3 complete!</strong> Dashboard, products, and other modules will be added in later phases.
+    </div>
+}
+else
+{
+    <div class="text-center mt-5">
+        <h1>Inventory Management System</h1>
+        <p class="lead text-muted">Manage products, suppliers, customers, purchases, and sales.</p>
+        <a asp-controller="Account" asp-action="Login" class="btn btn-primary me-2">Login</a>
+        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary">Register</a>
+    </div>
+}
