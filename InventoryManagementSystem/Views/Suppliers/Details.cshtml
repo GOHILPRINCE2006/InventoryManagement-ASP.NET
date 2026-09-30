@@ -1,0 +1,39 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.SupplierViewModel
+
+@{
+    ViewData["Title"] = "Supplier Details";
+}
+
+<h3>Supplier Details</h3>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">Contact Person</dt>
+            <dd class="col-sm-9">@(Model.ContactPerson ?? "—")</dd>
+
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@(Model.Phone ?? "—")</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@(Model.Email ?? "—")</dd>
+
+            <dt class="col-sm-3">Address</dt>
+            <dd class="col-sm-9">@(Model.Address ?? "—")</dd>
+
+            <dt class="col-sm-3">Product Count</dt>
+            <dd class="col-sm-9">@Model.ProductCount</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="mt-3">
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    }
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>
