@@ -1,0 +1,100 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.ProductListViewModel
+
+@{
+    ViewData["Title"] = "Products";
+    var canManage = User.IsInRole("Admin") || User.IsInRole("Manager");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Products</h3>
+    @if (canManage)
+    {
+        <a asp-action="Create" class="btn btn-primary">+ Add Product</a>
+    }
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-2">
+            <div class="col-md-4">
+                <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name or SKU..." />
+            </div>
+            <div class="col-md-3">
+                <select name="categoryId" class="form-select">
+                    <option value="">All Categories</option>
+                    @foreach (var c in Model.Categories)
+                    {
+                        <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="stockFilter" class="form-select">
+                    <option value="">All Stock</option>
+                    <option value="low" selected="@(Model.StockFilter == "low")">Low Stock</option>
+                    <option value="out" selected="@(Model.StockFilter == "out")">Out of Stock</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Products.Count == 0)
+        {
+            <p class="text-muted text-center p-4 mb-0">No products found.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Supplier</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Products)
+                    {
+                        <tr>
+                            <td>@p.Name</td>
+                            <td>@p.SKU</td>
+                            <td>@p.CategoryName</td>
+                            <td>@p.SupplierName</td>
+                            <td>₹@p.Price.ToString("N2")</td>
+                            <td>
+                                @p.Quantity
+                                @if (p.IsOutOfStock)
+                                {
+                                    <span class="badge bg-danger">Out</span>
+                                }
+                                else if (p.IsLowStock)
+                                {
+                                    <span class="badge bg-warning text-dark">Low</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                                @if (canManage)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

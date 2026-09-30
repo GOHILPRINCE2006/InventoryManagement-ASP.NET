@@ -1,0 +1,58 @@
+﻿@model InventoryManagementSystem.Models.Entities.Product
+
+@{
+    ViewData["Title"] = "Product Details";
+}
+
+<h3>Product Details</h3>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">SKU</dt>
+            <dd class="col-sm-9">@Model.SKU</dd>
+
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">@(Model.Description ?? "—")</dd>
+
+            <dt class="col-sm-3">Category</dt>
+            <dd class="col-sm-9">@Model.Category.Name</dd>
+
+            <dt class="col-sm-3">Supplier</dt>
+            <dd class="col-sm-9">@(Model.Supplier?.Name ?? "—")</dd>
+
+            <dt class="col-sm-3">Selling Price</dt>
+            <dd class="col-sm-9">₹@Model.Price.ToString("N2")</dd>
+
+            <dt class="col-sm-3">Cost Price</dt>
+            <dd class="col-sm-9">₹@Model.CostPrice.ToString("N2")</dd>
+
+            <dt class="col-sm-3">Quantity in Stock</dt>
+            <dd class="col-sm-9">
+                @Model.Quantity
+                @if (Model.Quantity == 0)
+                {
+                    <span class="badge bg-danger">Out of Stock</span>
+                }
+                else if (Model.Quantity <= Model.MinStockLevel)
+                {
+                    <span class="badge bg-warning text-dark">Low Stock</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Min Stock Level</dt>
+            <dd class="col-sm-9">@Model.MinStockLevel</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="mt-3">
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    }
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>
