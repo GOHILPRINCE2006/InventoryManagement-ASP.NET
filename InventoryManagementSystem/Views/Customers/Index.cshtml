@@ -3,11 +3,12 @@
 @{
     ViewData["Title"] = "Customers";
     var canManage = User.IsInRole("Admin") || User.IsInRole("Manager");
+    var canCreate = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("Employee");
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>Customers</h3>
-    @if (canManage)
+    @if (canCreate)
     {
         <a asp-action="Create" class="btn btn-primary">+ Add Customer</a>
     }

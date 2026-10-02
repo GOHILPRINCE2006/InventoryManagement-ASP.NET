@@ -54,12 +54,13 @@ namespace InventoryManagementSystem.Controllers
             return View(customer);
         }
 
-        [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Admin,Manager,Employee")]   
+
         public IActionResult Create() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Admin,Manager,Employee")]   
         public async Task<IActionResult> Create(CustomerViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
