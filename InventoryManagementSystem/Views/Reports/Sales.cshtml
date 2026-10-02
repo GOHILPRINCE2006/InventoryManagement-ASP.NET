@@ -1,0 +1,98 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.ReportViewModel
+
+@{
+    ViewData["Title"] = "Sales Report";
+}
+
+<h3>Sales Report</h3>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="Sales" method="get" class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label">From</label>
+                <input type="date" name="from" class="form-control" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To</label>
+                <input type="date" name="to" class="form-control" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Customer</label>
+                <select name="customerId" class="form-select">
+                    <option value="">All</option>
+                    @foreach (var c in Model.Customers)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Apply</button>
+                <a asp-action="Sales" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Invoices</h6>
+                <h3>@Model.TotalSalesCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Sales Amount</h6>
+                <h3 class="text-success">₹@Model.TotalSalesAmount.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.SalesRows.Count == 0)
+        {
+            <p class="text-muted p-3 mb-0">No sales in this date range.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                        <th>Sold By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.SalesRows)
+                    {
+                        <tr>
+                            <td>@r.InvoiceNumber</td>
+                            <td>@r.SaleDate.ToString("dd-MMM-yy")</td>
+                            <td>@r.CustomerName</td>
+                            <td>@r.ProductName</td>
+                            <td>@r.Quantity</td>
+                            <td>₹@r.UnitPrice.ToString("N2")</td>
+                            <td>₹@r.SubTotal.ToString("N2")</td>
+                            <td><small>@r.SoldBy</small></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

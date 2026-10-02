@@ -1,0 +1,84 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.StockHistoryViewModel
+
+@{
+    ViewData["Title"] = "Stock History";
+}
+
+<h3>Stock Transaction History</h3>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="History" method="get" class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Transaction Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All</option>
+                    <option value="IN" selected="@(Model.FilterType == "IN")">IN (Purchase)</option>
+                    <option value="OUT" selected="@(Model.FilterType == "OUT")">OUT (Sale)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Product</label>
+                <select name="productId" class="form-select">
+                    <option value="">All Products</option>
+                    @foreach (var p in Model.Products)
+                    {
+                        <option value="@p.Id" selected="@(Model.FilterProductId == p.Id)">@p.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filter</button>
+                <a asp-action="History" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Transactions.Count == 0)
+        {
+            <p class="text-muted text-center p-4 mb-0">No stock transactions found.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Reference</th>
+                        <th>By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Transactions)
+                    {
+                        <tr>
+                            <td>@t.TransactionDate.ToString("dd-MMM-yy HH:mm")</td>
+                            <td>@t.ProductName</td>
+                            <td>@t.ProductSKU</td>
+                            <td>
+                                @if (t.Type == "IN")
+                                {
+                                    <span class="badge bg-success">IN</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">OUT</span>
+                                }
+                            </td>
+                            <td>@t.Quantity</td>
+                            <td>@(t.Reference ?? "—")</td>
+                            <td><small>@t.UserEmail</small></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

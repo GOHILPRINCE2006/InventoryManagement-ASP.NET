@@ -3,6 +3,7 @@ using InventoryManagementSystem.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using InventoryManagementSystem.Models.ViewModels;
 
 namespace InventoryManagementSystem.Controllers
 {
@@ -130,6 +131,58 @@ namespace InventoryManagementSystem.Controllers
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+
+        // GET: /Account/Profile
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var model = new ProfileViewModel
+            {
+                FullName = user.FullName,
+                Email = user.Email ?? "",
+                PhoneNumber = user.PhoneNumber,
+                Address = user.Address,
+                RoleName = roles.FirstOrDefault() ?? "",
+                CreatedAt = user.CreatedAt
+            };
+
+            return View(model);
+        }
+
+        // POST: /Account/Profile
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Profile(ProfileViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login");
+
+            if (!ModelState.IsValid)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                model.Email = user.Email ?? "";
+                model.RoleName = roles.FirstOrDefault() ?? "";
+                model.CreatedAt = user.CreatedAt;
+                return View(model);
+            }
+
+            user.FullName = model.FullName;
+            user.PhoneNumber = model.PhoneNumber;
+            user.Address = model.Address;
+
+            await _userManager.UpdateAsync(user);
+
+            TempData["Success"] = "Profile updated successfully.";
+            return RedirectToAction(nameof(Profile));
         }
     }
 }

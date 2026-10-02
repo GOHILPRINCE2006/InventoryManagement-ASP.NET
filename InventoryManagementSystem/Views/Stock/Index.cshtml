@@ -1,0 +1,57 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.StockDashboardViewModel
+
+@{
+    ViewData["Title"] = "Stock Overview";
+}
+
+<h3>Stock Overview</h3>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h6 class="text-muted">Active Products</h6>
+                <h2 class="mb-0">@Model.TotalProducts</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-warning">
+            <div class="card-body">
+                <h6 class="text-muted">Low Stock</h6>
+                <h2 class="mb-0 text-warning">@Model.LowStockCount</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-danger">
+            <div class="card-body">
+                <h6 class="text-muted">Out of Stock</h6>
+                <h2 class="mb-0 text-danger">@Model.OutOfStockCount</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-success">
+            <div class="card-body">
+                <h6 class="text-muted">Total Stock Value</h6>
+                <h2 class="mb-0 text-success">₹@Model.TotalStockValue.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <a asp-action="History" class="btn btn-outline-primary w-100 p-3">
+            <h5 class="mb-1">📋 Stock History</h5>
+            <small class="text-muted">View all stock IN/OUT transactions</small>
+        </a>
+    </div>
+    <div class="col-md-6 mb-3">
+        <a asp-action="LowStock" class="btn btn-outline-warning w-100 p-3">
+            <h5 class="mb-1">⚠️ Low Stock Alerts</h5>
+            <small class="text-muted">Products at or below minimum level</small>
+        </a>
+    </div>
+</div>

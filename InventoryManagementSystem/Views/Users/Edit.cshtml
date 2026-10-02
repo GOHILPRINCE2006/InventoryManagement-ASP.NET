@@ -1,0 +1,50 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.UserEditViewModel
+
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<h3>Edit User</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Email" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input value="@Model.Email" class="form-control" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label">Full Name</label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="RoleName" class="form-label">Role</label>
+                        <select asp-for="RoleName" asp-items="Model.AvailableRoles" class="form-select"></select>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label asp-for="IsActive" class="form-check-label">Active</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

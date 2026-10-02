@@ -1,72 +1,179 @@
-﻿@{
+﻿@model InventoryManagementSystem.Models.ViewModels.DashboardViewModel
+
+@{
     ViewData["Title"] = "Dashboard";
 }
 
 @if (User.Identity != null && User.Identity.IsAuthenticated)
 {
-    <h2>Welcome, @User.Identity.Name</h2>
+    <h3>Welcome, @User.Identity.Name 👋</h3>
     <p class="text-muted">
-        You are signed in as
+        Role:
         @if (User.IsInRole("Admin"))
         {
             <span class="badge bg-danger">Admin</span>
         }
         else if (User.IsInRole("Manager"))
         {
+
             <span class="badge bg-warning text-dark">Manager</span>
         }
         else
         {
+
             <span class="badge bg-info">Employee</span>
         }
     </p>
 
-    <hr />
-
-    <div class="row">
+    <!-- Summary Cards -->
+    <div class="row mb-3">
         <div class="col-md-3 mb-3">
-            <div class="card">
+            <div class="card border-primary">
                 <div class="card-body">
                     <h6 class="text-muted">Products</h6>
-                    <h3>0</h3>
+                    <h2 class="mb-0">@Model.TotalProducts</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted">Sales</h6>
-                    <h3>0</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card">
+            <div class="card border-info">
                 <div class="card-body">
                     <h6 class="text-muted">Customers</h6>
-                    <h3>0</h3>
+                    <h2 class="mb-0">@Model.TotalCustomers</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="text-muted">Sales</h6>
+                    <h2 class="mb-0">@Model.TotalSales</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-warning">
                 <div class="card-body">
                     <h6 class="text-muted">Low Stock</h6>
-                    <h3>0</h3>
+                    <h2 class="mb-0">@Model.LowStockCount</h2>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="alert alert-info mt-3">
-        <strong>Phase 3 complete!</strong> Dashboard, products, and other modules will be added in later phases.
+    <!-- Financial Row -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Revenue</h6>
+                    <h3 class="text-success mb-0">₹@Model.TotalRevenue.ToString("N2")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Purchase Cost</h6>
+                    <h3 class="text-danger mb-0">₹@Model.TotalPurchaseCost.ToString("N2")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Estimated Profit</h6>
+                    <h3 class="@(Model.EstimatedProfit >= 0 ? "text-success" : "text-danger") mb-0">
+                        ₹@Model.EstimatedProfit.ToString("N2")
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Low Stock Items -->
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span>⚠️ Low Stock Products</span>
+                    <a asp-controller="Stock" asp-action="LowStock" class="small">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.LowStockItems.Count == 0)
+                    {
+                        <p class="text-muted p-3 mb-0">All products have sufficient stock. ✅</p>
+                    }
+                    else
+                    {
+                        <table class="table mb-0">
+                            <thead>
+                                <tr><th>Product</th><th>In Stock</th><th>Min</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.LowStockItems)
+                                {
+                                    <tr>
+                                        <td>@item.ProductName</td>
+                                        <td>
+                                            <span class="@(item.Quantity == 0 ? "badge bg-danger" : "badge bg-warning text-dark")">
+                                                @item.Quantity
+                                            </span>
+                                        </td>
+                                        <td>@item.MinStockLevel</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Sales -->
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span>🧾 Recent Sales</span>
+                    <a asp-controller="Sales" asp-action="Index" class="small">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentSales.Count == 0)
+                    {
+                        <p class="text-muted p-3 mb-0">No sales yet.</p>
+                    }
+                    else
+                    {
+                        <table class="table mb-0">
+                            <thead>
+                                <tr><th>Invoice</th><th>Customer</th><th>Total</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in Model.RecentSales)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a asp-controller="Sales" asp-action="Details" asp-route-id="@s.SaleId">
+                                                @s.InvoiceNumber
+                                            </a>
+                                        </td>
+                                        <td>@s.CustomerName</td>
+                                        <td>₹@s.TotalAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 }
 else
 {
     <div class="text-center mt-5">
         <h1>Inventory Management System</h1>
-        <p class="lead text-muted">Manage products, suppliers, customers, purchases, and sales.</p>
+        <p class="lead text-muted">Manage products, suppliers, customers, purchases, and sales — all in one place.</p>
         <a asp-controller="Account" asp-action="Login" class="btn btn-primary me-2">Login</a>
         <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary">Register</a>
     </div>

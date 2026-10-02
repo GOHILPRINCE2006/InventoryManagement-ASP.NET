@@ -1,0 +1,95 @@
+﻿@model InventoryManagementSystem.Models.ViewModels.ReportViewModel
+
+@{
+    ViewData["Title"] = "Inventory Report";
+}
+
+<h3>Inventory Report</h3>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="Inventory" method="get" class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Category</label>
+                <select name="categoryId" class="form-select">
+                    <option value="">All Categories</option>
+                    @foreach (var c in Model.Categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Apply</button>
+                <a asp-action="Inventory" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Products</h6>
+                <h3>@Model.TotalInventoryItems</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Inventory Value</h6>
+                <h3 class="text-success">₹@Model.TotalInventoryValue.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.InventoryRows.Count == 0)
+        {
+            <p class="text-muted p-3 mb-0">No products found.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Supplier</th>
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Price</th>
+                        <th>Stock Value</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.InventoryRows)
+                    {
+                        <tr>
+                            <td>@r.ProductName</td>
+                            <td>@r.SKU</td>
+                            <td>@r.CategoryName</td>
+                            <td>@r.SupplierName</td>
+                            <td>@r.Quantity</td>
+                            <td>₹@r.CostPrice.ToString("N2")</td>
+                            <td>₹@r.Price.ToString("N2")</td>
+                            <td>₹@r.StockValue.ToString("N2")</td>
+                            <td>
+                                @if (r.IsLowStock)
+                                {
+                                    <span class="badge bg-warning text-dark">Low</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

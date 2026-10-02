@@ -14,11 +14,19 @@
         <a class="navbar-brand" asp-controller="Home" asp-action="Index">
             Inventory System
         </a>
+      
+        <a asp-controller="Stock" asp-action="LowStock" class="btn btn-outline-warning btn-sm me-3">
+            ⚠️ Low Stock
+        </a>
 
         <div class="ms-auto">
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 <span class="text-white me-3">Hello, @User.Identity.Name</span>
+
+                <a asp-controller="Account" asp-action="Profile" class="btn btn-outline-light btn-sm me-2">
+                    My Profile
+                </a>
 
                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                     @Html.AntiForgeryToken()

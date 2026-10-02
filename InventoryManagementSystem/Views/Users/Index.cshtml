@@ -1,0 +1,68 @@
+﻿@model List<InventoryManagementSystem.Models.ViewModels.UserListItemViewModel>
+
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<h3>Manage Users</h3>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td>@u.FullName</td>
+                        <td>@u.Email</td>
+                        <td>
+                            @if (u.RoleName == "Admin")
+                            {
+                                <span class="badge bg-danger">Admin</span>
+                            }
+                            else if (u.RoleName == "Manager")
+                            {
+                                <span class="badge bg-warning text-dark">Manager</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info">Employee</span>
+                            }
+                        </td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>@u.CreatedAt.ToString("dd-MMM-yyyy")</td>
+                        <td class="text-end">
+                            <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+
+                            <form asp-action="ToggleActive" asp-route-id="@u.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-warning">
+                                    @(u.IsActive ? "Deactivate" : "Activate")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

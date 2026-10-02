@@ -1,0 +1,62 @@
+﻿@model List<InventoryManagementSystem.Models.ViewModels.LowStockItemVM>
+
+@{
+    ViewData["Title"] = "Low Stock Alerts";
+}
+
+<h3>Low Stock Alerts</h3>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-success">
+        ✅ All products have sufficient stock.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        ⚠️ <strong>@Model.Count</strong> product(s) need restocking.
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Supplier</th>
+                        <th>In Stock</th>
+                        <th>Min Level</th>
+                        <th>Shortage</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>@p.Name</td>
+                            <td>@p.SKU</td>
+                            <td>@p.CategoryName</td>
+                            <td>@p.SupplierName</td>
+                            <td>
+                                <span class="@(p.Quantity == 0 ? "badge bg-danger" : "badge bg-warning text-dark")">
+                                    @p.Quantity
+                                </span>
+                            </td>
+                            <td>@p.MinStockLevel</td>
+                            <td class="text-danger fw-bold">@p.Shortage</td>
+                            <td class="text-end">
+                                <a asp-controller="Purchases" asp-action="Create" class="btn btn-sm btn-primary">
+                                    Restock
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
