@@ -1,5 +1,6 @@
 ﻿using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,17 +14,26 @@ namespace InventoryManagementSystem.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<Role> _roleManager;
+        private readonly ICurrentTenantService _tenantService;
 
-        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<Role> roleManager)
+        public UsersController(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<Role> roleManager,
+            ICurrentTenantService tenantService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _tenantService = tenantService;
         }
 
-        // GET: /Users
         public async Task<IActionResult> Index()
         {
-            var users = await _userManager.Users.OrderBy(u => u.Email).ToListAsync();
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var users = await _userManager.Users
+                .Where(u => u.TenantId == tenantId)
+                .OrderBy(u => u.Email)
+                .ToListAsync();
 
             var list = new List<UserListItemViewModel>();
             foreach (var user in users)
@@ -43,10 +53,13 @@ namespace InventoryManagementSystem.Controllers
             return View(list);
         }
 
-        // GET: /Users/Edit/5
         public async Task<IActionResult> Edit(string id)
         {
-            var user = await _userManager.FindByIdAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var user = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId);
+
             if (user == null) return NotFound();
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -70,7 +83,6 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Users/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id, UserEditViewModel model)
@@ -78,16 +90,18 @@ namespace InventoryManagementSystem.Controllers
             if (id != model.Id) return NotFound();
             if (!ModelState.IsValid) return View(model);
 
-            var user = await _userManager.FindByIdAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var user = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId);
+
             if (user == null) return NotFound();
 
-            // Update basic info
             user.FullName = model.FullName;
             user.IsActive = model.IsActive;
 
             await _userManager.UpdateAsync(user);
 
-            // Update role
             var currentRoles = await _userManager.GetRolesAsync(user);
             if (!currentRoles.Contains(model.RoleName))
             {
@@ -99,12 +113,15 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /Users/ToggleActive
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleActive(string id)
         {
-            var user = await _userManager.FindByIdAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var user = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId);
+
             if (user == null) return NotFound();
 
             user.IsActive = !user.IsActive;

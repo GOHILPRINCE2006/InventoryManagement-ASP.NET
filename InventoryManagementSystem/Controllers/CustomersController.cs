@@ -1,6 +1,7 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,20 @@ namespace InventoryManagementSystem.Controllers
     public class CustomersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentTenantService _tenantService;
 
-        public CustomersController(ApplicationDbContext context)
+        public CustomersController(ApplicationDbContext context, ICurrentTenantService tenantService)
         {
             _context = context;
+            _tenantService = tenantService;
         }
 
         public async Task<IActionResult> Index()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var customers = await _context.Customers
+                .Where(c => c.TenantId == tenantId)
                 .Select(c => new CustomerViewModel
                 {
                     Id = c.Id,
@@ -37,8 +43,10 @@ namespace InventoryManagementSystem.Controllers
 
         public async Task<IActionResult> Details(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var customer = await _context.Customers
-                .Where(c => c.Id == id)
+                .Where(c => c.Id == id && c.TenantId == tenantId)
                 .Select(c => new CustomerViewModel
                 {
                     Id = c.Id,
@@ -54,16 +62,17 @@ namespace InventoryManagementSystem.Controllers
             return View(customer);
         }
 
-        [Authorize(Roles = "Admin,Manager,Employee")]   
-
+        [Authorize(Roles = "Admin,Manager,Employee")]
         public IActionResult Create() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Manager,Employee")]   
+        [Authorize(Roles = "Admin,Manager,Employee")]
         public async Task<IActionResult> Create(CustomerViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
+
+            var tenantId = _tenantService.TenantId ?? 0;
 
             var customer = new Customer
             {
@@ -71,7 +80,8 @@ namespace InventoryManagementSystem.Controllers
                 Phone = model.Phone,
                 Email = model.Email,
                 Address = model.Address,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TenantId = tenantId
             };
 
             _context.Customers.Add(customer);
@@ -84,7 +94,11 @@ namespace InventoryManagementSystem.Controllers
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Edit(int id)
         {
-            var c = await _context.Customers.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var c = await _context.Customers
+                .FirstOrDefaultAsync(x => x.Id == id && x.TenantId == tenantId);
+
             if (c == null) return NotFound();
 
             return View(new CustomerViewModel
@@ -105,7 +119,11 @@ namespace InventoryManagementSystem.Controllers
             if (id != model.Id) return NotFound();
             if (!ModelState.IsValid) return View(model);
 
-            var customer = await _context.Customers.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+
             if (customer == null) return NotFound();
 
             customer.Name = model.Name;
@@ -122,8 +140,10 @@ namespace InventoryManagementSystem.Controllers
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var customer = await _context.Customers
-                .Where(c => c.Id == id)
+                .Where(c => c.Id == id && c.TenantId == tenantId)
                 .Select(c => new CustomerViewModel
                 {
                     Id = c.Id,
@@ -144,9 +164,11 @@ namespace InventoryManagementSystem.Controllers
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var customer = await _context.Customers
                 .Include(c => c.Sales)
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
 
             if (customer == null) return NotFound();
 

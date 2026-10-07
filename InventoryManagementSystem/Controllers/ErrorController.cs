@@ -1,17 +1,9 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers
 {
     public class ErrorController : Controller
     {
-        private readonly ILogger<ErrorController> _logger;
-
-        public ErrorController(ILogger<ErrorController> logger)
-        {
-            _logger = logger;
-        }
-
         [Route("Error/404")]
         public IActionResult NotFound404()
         {
@@ -22,13 +14,6 @@ namespace InventoryManagementSystem.Controllers
         [Route("Error/ServerError")]
         public IActionResult ServerError()
         {
-            // ⭐ Log the exception details
-            var exceptionFeature = HttpContext.Features.Get<IExceptionHandlerFeature>();
-            if (exceptionFeature != null)
-            {
-                _logger.LogError(exceptionFeature.Error, "Unhandled exception");
-            }
-
             return View();
         }
 

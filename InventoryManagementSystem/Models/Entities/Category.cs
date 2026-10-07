@@ -14,6 +14,11 @@ namespace InventoryManagementSystem.Models.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // ⭐ NEW: Tenant relationship
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+
+        // Existing navigation property
         public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

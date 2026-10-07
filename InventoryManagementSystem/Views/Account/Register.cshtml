@@ -2,59 +2,140 @@
 
 @{
     ViewData["Title"] = "Register";
-    Layout = "_AuthLayout";
+    Layout = null;
 }
 
-<div class="auth-wrapper">
-    <div class="auth-card">
-        <div class="text-center mb-4">
-            <h2 class="fw-bold">Create Account</h2>
-            <p class="text-muted">Register to start managing inventory</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Inventory System</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-light">
+
+    <div class="container">
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-7 col-lg-6">
+                <div class="card shadow-sm mt-3">
+                    <div class="card-body p-4">
+                        <h3 class="text-center mb-4">Create Account</h3>
+
+                        <form asp-action="Register" method="post">
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                            <!-- Account Type Selection -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">I want to:</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="AccountType"
+                                           value="CreateShop" id="radioCreate" checked />
+                                    <label class="form-check-label" for="radioCreate">
+                                        <strong>Create a new shop</strong> — I'm the owner
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="AccountType"
+                                           value="JoinShop" id="radioJoin" />
+                                    <label class="form-check-label" for="radioJoin">
+                                        <strong>Join an existing shop</strong> — I have a shop code
+                                    </label>
+                                </div>
+                                <span asp-validation-for="AccountType" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Create Shop Section -->
+                            <div id="sectionCreateShop" class="mb-3 p-3 bg-light border rounded">
+                                <label asp-for="ShopName" class="form-label fw-bold">Shop Name</label>
+                                <input asp-for="ShopName" class="form-control"
+                                       placeholder="e.g., Priya Electronics" />
+                                <span asp-validation-for="ShopName" class="text-danger small"></span>
+                                <small class="text-muted">A unique shop code will be generated automatically.</small>
+                            </div>
+
+                            <!-- Join Shop Section -->
+                            <div id="sectionJoinShop" class="mb-3 p-3 bg-light border rounded" style="display:none;">
+                                <label asp-for="ShopCode" class="form-label fw-bold">Shop Code</label>
+                                <input asp-for="ShopCode" class="form-control"
+                                       placeholder="e.g., PRIYA" />
+                                <span asp-validation-for="ShopCode" class="text-danger small"></span>
+                                <small class="text-muted">Ask your shop owner for the code.</small>
+                            </div>
+
+                            <hr />
+
+                            <!-- User Info -->
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label">Full Name</label>
+                                <input asp-for="FullName" class="form-control" placeholder="John Doe" />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label">Email</label>
+                                <input asp-for="Email" class="form-control" placeholder="you@example.com" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">Phone (optional)</label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="9876543210" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Password" class="form-label">Password</label>
+                                <input asp-for="Password" class="form-control" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label">Confirm Password</label>
+                                <input asp-for="ConfirmPassword" class="form-control" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">Create Account</button>
+                        </form>
+
+                        <hr />
+                        <p class="text-center mb-0">
+                            Already have an account?
+                            <a asp-action="Login">Login</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <form asp-action="Register" method="post" novalidate>
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-            <div class="mb-3">
-                <label asp-for="FullName" class="form-label">Full Name</label>
-                <input asp-for="FullName" class="form-control" placeholder="John Doe" autofocus />
-                <span asp-validation-for="FullName" class="text-danger small"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label">Email</label>
-                <input asp-for="Email" class="form-control" placeholder="you@example.com" />
-                <span asp-validation-for="Email" class="text-danger small"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="PhoneNumber" class="form-label">Phone (optional)</label>
-                <input asp-for="PhoneNumber" class="form-control" placeholder="+91 9876543210" />
-                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label">Password</label>
-                <input asp-for="Password" class="form-control" placeholder="••••••••" />
-                <span asp-validation-for="Password" class="text-danger small"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="ConfirmPassword" class="form-label">Confirm Password</label>
-                <input asp-for="ConfirmPassword" class="form-control" placeholder="••••••••" />
-                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 mb-3">Register</button>
-
-            <p class="text-center text-muted small">
-                Already have an account?
-                <a asp-action="Login">Sign in</a>
-            </p>
-        </form>
     </div>
-</div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+            // Toggle between Create Shop and Join Shop sections
+            function toggleShopSections() {
+                const createRadio = document.getElementById('radioCreate');
+                const joinRadio = document.getElementById('radioJoin');
+                const createSection = document.getElementById('sectionCreateShop');
+                const joinSection = document.getElementById('sectionJoinShop');
+
+                if (createRadio.checked) {
+                    createSection.style.display = 'block';
+                    joinSection.style.display = 'none';
+                } else {
+                    createSection.style.display = 'none';
+                    joinSection.style.display = 'block';
+                }
+            }
+
+            document.getElementById('radioCreate').addEventListener('change', toggleShopSections);
+            document.getElementById('radioJoin').addEventListener('change', toggleShopSections);
+
+            // Run on page load
+            toggleShopSections();
+    </script>
+</body>
+</html>

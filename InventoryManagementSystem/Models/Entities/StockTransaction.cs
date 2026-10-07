@@ -10,15 +10,19 @@ namespace InventoryManagementSystem.Models.Entities
         public Product Product { get; set; } = null!;
 
         [Required, StringLength(10)]
-        public string Type { get; set; } = string.Empty; 
+        public string Type { get; set; } = string.Empty;
 
-        public int Quantity { get; set; } 
+        public int Quantity { get; set; }
 
         [StringLength(100)]
-        public string? Reference { get; set; } 
+        public string? Reference { get; set; }
 
         [StringLength(255)]
         public string? Notes { get; set; }
+
+        // ⭐ NEW: Tenant relationship
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         public string UserId { get; set; } = string.Empty;
         public ApplicationUser User { get; set; } = null!;

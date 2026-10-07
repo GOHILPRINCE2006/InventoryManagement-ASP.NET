@@ -1,6 +1,7 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +12,20 @@ namespace InventoryManagementSystem.Controllers
     public class CategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentTenantService _tenantService;
 
-        public CategoriesController(ApplicationDbContext context)
+        public CategoriesController(ApplicationDbContext context, ICurrentTenantService tenantService)
         {
             _context = context;
+            _tenantService = tenantService;
         }
 
-        // GET: /Categories
         public async Task<IActionResult> Index()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var categories = await _context.Categories
+                .Where(c => c.TenantId == tenantId)
                 .Select(c => new CategoryViewModel
                 {
                     Id = c.Id,
@@ -34,11 +39,12 @@ namespace InventoryManagementSystem.Controllers
             return View(categories);
         }
 
-        // GET: /Categories/Details/5
         public async Task<IActionResult> Details(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var category = await _context.Categories
-                .Where(c => c.Id == id)
+                .Where(c => c.Id == id && c.TenantId == tenantId)
                 .Select(c => new CategoryViewModel
                 {
                     Id = c.Id,
@@ -54,14 +60,12 @@ namespace InventoryManagementSystem.Controllers
             return View(category);
         }
 
-        // GET: /Categories/Create
         [Authorize(Roles = "Admin,Manager")]
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: /Categories/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
@@ -70,9 +74,10 @@ namespace InventoryManagementSystem.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Check duplicate name
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var exists = await _context.Categories
-                .AnyAsync(c => c.Name.ToLower() == model.Name.ToLower());
+                .AnyAsync(c => c.TenantId == tenantId && c.Name.ToLower() == model.Name.ToLower());
 
             if (exists)
             {
@@ -84,7 +89,8 @@ namespace InventoryManagementSystem.Controllers
             {
                 Name = model.Name,
                 Description = model.Description,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TenantId = tenantId
             };
 
             _context.Categories.Add(category);
@@ -94,11 +100,14 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Categories/Edit/5
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Edit(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+
             if (category == null)
                 return NotFound();
 
@@ -112,7 +121,6 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Categories/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
@@ -124,13 +132,16 @@ namespace InventoryManagementSystem.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var category = await _context.Categories.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+
             if (category == null)
                 return NotFound();
 
-            // Duplicate check (excluding self)
             var exists = await _context.Categories
-                .AnyAsync(c => c.Id != id && c.Name.ToLower() == model.Name.ToLower());
+                .AnyAsync(c => c.TenantId == tenantId && c.Id != id && c.Name.ToLower() == model.Name.ToLower());
 
             if (exists)
             {
@@ -147,12 +158,13 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Categories/Delete/5
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var category = await _context.Categories
-                .Where(c => c.Id == id)
+                .Where(c => c.Id == id && c.TenantId == tenantId)
                 .Select(c => new CategoryViewModel
                 {
                     Id = c.Id,
@@ -168,15 +180,16 @@ namespace InventoryManagementSystem.Controllers
             return View(category);
         }
 
-        // POST: /Categories/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var category = await _context.Categories
                 .Include(c => c.Products)
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
 
             if (category == null)
                 return NotFound();

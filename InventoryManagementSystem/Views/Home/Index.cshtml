@@ -25,6 +25,47 @@
         }
     </p>
 
+    @* ⭐ NEW: Shop info card (visible to all, code only to Admin) *@
+    <div class="card mb-3 border-primary">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-1">🏪 @ViewBag.ShopName</h5>
+                    <small class="text-muted">Your shop</small>
+                </div>
+                @if (ViewBag.IsAdmin == true)
+                {
+                    <div class="col-md-6 text-md-end">
+                        <div class="text-muted small mb-1">
+                            <strong>🔑 Shop Code</strong> — Share with your employees
+                        </div>
+                        <div class="input-group justify-content-md-end" style="max-width: 300px; margin-left: auto;">
+                            <input type="text" id="shopCodeInput" class="form-control form-control-lg fw-bold text-center"
+                                   value="@ViewBag.ShopCode" readonly />
+                            <button class="btn btn-primary" onclick="copyShopCode()" type="button">
+                                📋 Copy
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-1" id="copyStatus"></small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyShopCode() {
+            const input = document.getElementById('shopCodeInput');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value);
+            document.getElementById('copyStatus').innerText = '✅ Copied to clipboard!';
+            setTimeout(() => {
+                document.getElementById('copyStatus').innerText = '';
+            }, 2000);
+        }
+    </script>
+
     <!-- Summary Cards -->
     <div class="row mb-3">
         <div class="col-md-3 mb-3">

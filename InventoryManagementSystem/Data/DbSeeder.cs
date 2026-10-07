@@ -16,6 +16,28 @@ namespace InventoryManagementSystem.Data
             // Apply pending migrations
             await context.Database.MigrateAsync();
 
+            // ============ SEED TENANT ============
+            // ⭐ NEW: Create a default demo tenant
+            if (!await context.Tenants.AnyAsync())
+            {
+                var demoTenant = new Tenant
+                {
+                    Name = "Demo Store",
+                    Code = "DEMO",
+                    Address = "Head Office",
+                    Phone = "0000000000",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                context.Tenants.Add(demoTenant);
+                await context.SaveChangesAsync();
+            }
+
+            // Fetch the demo tenant (we'll use its Id everywhere)
+            var tenant = await context.Tenants.FirstAsync(t => t.Code == "DEMO");
+            var tenantId = tenant.Id;
+
             // ============ SEED ROLES ============
             string[] roles = { "Admin", "Manager", "Employee" };
             foreach (var roleName in roles)
@@ -36,30 +58,33 @@ namespace InventoryManagementSystem.Data
                 email: "admin@ims.com",
                 password: "Admin@123",
                 fullName: "System Administrator",
-                role: "Admin");
+                role: "Admin",
+                tenantId: tenantId);
 
             await CreateUserIfNotExists(
                 userManager,
                 email: "manager@ims.com",
                 password: "Manager@123",
                 fullName: "Default Manager",
-                role: "Manager");
+                role: "Manager",
+                tenantId: tenantId);
 
             await CreateUserIfNotExists(
                 userManager,
                 email: "employee@ims.com",
                 password: "Employee@123",
                 fullName: "Default Employee",
-                role: "Employee");
+                role: "Employee",
+                tenantId: tenantId);
 
             // ============ SEED CATEGORIES ============
             if (!await context.Categories.AnyAsync())
             {
                 context.Categories.AddRange(
-                    new Category { Name = "Electronics", Description = "Electronic devices and gadgets" },
-                    new Category { Name = "Furniture", Description = "Office and home furniture" },
-                    new Category { Name = "Stationery", Description = "Office and school supplies" },
-                    new Category { Name = "Groceries", Description = "Food and daily essentials" }
+                    new Category { Name = "Electronics", Description = "Electronic devices and gadgets", CreatedAt = DateTime.UtcNow, TenantId = tenantId },
+                    new Category { Name = "Furniture", Description = "Office and home furniture", CreatedAt = DateTime.UtcNow, TenantId = tenantId },
+                    new Category { Name = "Stationery", Description = "Office and school supplies", CreatedAt = DateTime.UtcNow, TenantId = tenantId },
+                    new Category { Name = "Groceries", Description = "Food and daily essentials", CreatedAt = DateTime.UtcNow, TenantId = tenantId }
                 );
                 await context.SaveChangesAsync();
             }
@@ -70,7 +95,8 @@ namespace InventoryManagementSystem.Data
             string email,
             string password,
             string fullName,
-            string role)
+            string role,
+            int tenantId)   // ⭐ NEW parameter
         {
             var existing = await userManager.FindByEmailAsync(email);
             if (existing != null) return;
@@ -82,7 +108,8 @@ namespace InventoryManagementSystem.Data
                 EmailConfirmed = true,
                 FullName = fullName,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TenantId = tenantId   // ⭐ Set tenant
             };
 
             var result = await userManager.CreateAsync(user, password);

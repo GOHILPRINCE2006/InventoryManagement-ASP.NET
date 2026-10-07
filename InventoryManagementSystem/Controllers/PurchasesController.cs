@@ -1,6 +1,7 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,17 +15,21 @@ namespace InventoryManagementSystem.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ICurrentTenantService _tenantService;
 
-        public PurchasesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public PurchasesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ICurrentTenantService tenantService)
         {
             _context = context;
             _userManager = userManager;
+            _tenantService = tenantService;
         }
 
-        // GET: /Purchases
         public async Task<IActionResult> Index()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var purchases = await _context.Purchases
+                .Where(p => p.TenantId == tenantId)
                 .Include(p => p.Supplier)
                 .Include(p => p.User)
                 .Include(p => p.PurchaseItems)
@@ -34,21 +39,22 @@ namespace InventoryManagementSystem.Controllers
             return View(purchases);
         }
 
-        // GET: /Purchases/Details/5
         public async Task<IActionResult> Details(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var purchase = await _context.Purchases
+                .Where(p => p.Id == id && p.TenantId == tenantId)
                 .Include(p => p.Supplier)
                 .Include(p => p.User)
                 .Include(p => p.PurchaseItems)
                     .ThenInclude(pi => pi.Product)
-                .FirstOrDefaultAsync(p => p.Id == id);
+                .FirstOrDefaultAsync();
 
             if (purchase == null) return NotFound();
             return View(purchase);
         }
 
-        // GET: /Purchases/Create
         [Authorize(Roles = "Admin,Manager,Employee")]
         public async Task<IActionResult> Create()
         {
@@ -57,19 +63,15 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Purchases/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager,Employee")]
         public async Task<IActionResult> Create(PurchaseCreateViewModel model)
         {
-            // Remove Items validation from ModelState (we validate manually)
             ModelState.Remove(nameof(model.Items));
 
             if (model.Items == null || model.Items.Count == 0 || model.Items.All(i => i.ProductId == 0))
-            {
                 ModelState.AddModelError("", "Please add at least one product.");
-            }
 
             if (!ModelState.IsValid)
             {
@@ -77,8 +79,9 @@ namespace InventoryManagementSystem.Controllers
                 return View(model);
             }
 
-            // Filter out empty rows
-            var validItems = model.Items.Where(i => i.ProductId > 0 && i.Quantity > 0).ToList();
+            var validItems = model.Items?
+                .Where(i => i.ProductId > 0 && i.Quantity > 0)
+                .ToList() ?? new List<PurchaseLineItemViewModel>();
 
             if (!validItems.Any())
             {
@@ -87,7 +90,8 @@ namespace InventoryManagementSystem.Controllers
                 return View(model);
             }
 
-            // Begin DB transaction
+            var tenantId = _tenantService.TenantId ?? 0;
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -96,7 +100,7 @@ namespace InventoryManagementSystem.Controllers
                 if (currentUser == null)
                     return RedirectToAction("Login", "Account");
 
-                var purchaseNumber = await GeneratePurchaseNumberAsync();
+                var purchaseNumber = await GeneratePurchaseNumberAsync(tenantId);
 
                 var purchase = new Purchase
                 {
@@ -105,17 +109,19 @@ namespace InventoryManagementSystem.Controllers
                     PurchaseDate = model.PurchaseDate,
                     Notes = model.Notes,
                     UserId = currentUser.Id,
-                    TotalAmount = 0
+                    TotalAmount = 0,
+                    TenantId = tenantId
                 };
 
                 _context.Purchases.Add(purchase);
-                await _context.SaveChangesAsync(); // Get purchase Id
+                await _context.SaveChangesAsync();
 
                 decimal total = 0;
 
                 foreach (var item in validItems)
                 {
-                    var product = await _context.Products.FindAsync(item.ProductId);
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == tenantId);
                     if (product == null) continue;
 
                     var subTotal = item.Quantity * item.UnitPrice;
@@ -130,20 +136,19 @@ namespace InventoryManagementSystem.Controllers
                         SubTotal = subTotal
                     });
 
-                    // ✅ Stock increases
                     product.Quantity += item.Quantity;
                     product.UpdatedAt = DateTime.UtcNow;
 
-                    // Log stock transaction
                     _context.StockTransactions.Add(new StockTransaction
                     {
                         ProductId = product.Id,
                         Type = "IN",
                         Quantity = item.Quantity,
                         Reference = purchaseNumber,
-                        Notes = $"Purchase from supplier",
+                        Notes = "Purchase from supplier",
                         UserId = currentUser.Id,
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        TenantId = tenantId
                     });
                 }
 
@@ -163,23 +168,26 @@ namespace InventoryManagementSystem.Controllers
             }
         }
 
-        private async Task<string> GeneratePurchaseNumberAsync()
+        private async Task<string> GeneratePurchaseNumberAsync(int tenantId)
         {
             var year = DateTime.Now.Year;
             var count = await _context.Purchases
-                .CountAsync(p => p.PurchaseDate.Year == year) + 1;
+                .CountAsync(p => p.TenantId == tenantId && p.PurchaseDate.Year == year) + 1;
             return $"PO-{year}-{count:D4}";
         }
 
         private async Task PopulateDropdowns(PurchaseCreateViewModel model)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             model.Suppliers = await _context.Suppliers
+                .Where(s => s.TenantId == tenantId)
                 .OrderBy(s => s.Name)
                 .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Name })
                 .ToListAsync();
 
             model.Products = await _context.Products
-                .Where(p => p.IsActive)
+                .Where(p => p.TenantId == tenantId && p.IsActive)
                 .OrderBy(p => p.Name)
                 .Select(p => new ProductOption
                 {

@@ -1,6 +1,7 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -12,19 +13,22 @@ namespace InventoryManagementSystem.Controllers
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentTenantService _tenantService;
 
-        public ProductsController(ApplicationDbContext context)
+        public ProductsController(ApplicationDbContext context, ICurrentTenantService tenantService)
         {
             _context = context;
+            _tenantService = tenantService;
         }
 
-        // GET: /Products?search=&categoryId=&stockFilter=
         public async Task<IActionResult> Index(string? search, int? categoryId, string? stockFilter)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
-                .Where(p => p.IsActive)
+                .Where(p => p.TenantId == tenantId && p.IsActive)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -38,7 +42,6 @@ namespace InventoryManagementSystem.Controllers
             if (categoryId.HasValue && categoryId.Value > 0)
                 query = query.Where(p => p.CategoryId == categoryId.Value);
 
-            // Stock filters are applied AFTER retrieving (because of computed properties)
             var products = await query
                 .OrderBy(p => p.Name)
                 .Select(p => new ProductListItem
@@ -54,7 +57,6 @@ namespace InventoryManagementSystem.Controllers
                 })
                 .ToListAsync();
 
-            // Apply stock filter in memory
             if (!string.IsNullOrEmpty(stockFilter))
             {
                 products = stockFilter switch
@@ -72,6 +74,7 @@ namespace InventoryManagementSystem.Controllers
                 CategoryId = categoryId,
                 StockFilter = stockFilter,
                 Categories = await _context.Categories
+                    .Where(c => c.TenantId == tenantId)
                     .Select(c => new CategoryOption { Id = c.Id, Name = c.Name })
                     .OrderBy(c => c.Name)
                     .ToListAsync()
@@ -80,19 +83,19 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // GET: /Products/Details/5
         public async Task<IActionResult> Details(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
-                .FirstOrDefaultAsync(p => p.Id == id);
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
 
             if (product == null) return NotFound();
             return View(product);
         }
 
-        // GET: /Products/Create
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Create()
         {
@@ -101,20 +104,22 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Products/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Create(ProductFormViewModel model)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             if (!ModelState.IsValid)
             {
                 await PopulateDropdowns(model);
                 return View(model);
             }
 
-            // Duplicate SKU check
-            var exists = await _context.Products.AnyAsync(p => p.SKU.ToLower() == model.SKU.ToLower());
+            var exists = await _context.Products
+                .AnyAsync(p => p.TenantId == tenantId && p.SKU.ToLower() == model.SKU.ToLower());
+
             if (exists)
             {
                 ModelState.AddModelError(nameof(model.SKU), "This SKU already exists.");
@@ -134,7 +139,8 @@ namespace InventoryManagementSystem.Controllers
                 CategoryId = model.CategoryId,
                 SupplierId = model.SupplierId,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TenantId = tenantId
             };
 
             _context.Products.Add(product);
@@ -144,11 +150,14 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Products/Edit/5
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Edit(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+
             if (product == null) return NotFound();
 
             var model = new ProductFormViewModel
@@ -170,24 +179,29 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Products/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Edit(int id, ProductFormViewModel model)
         {
             if (id != model.Id) return NotFound();
+
+            var tenantId = _tenantService.TenantId ?? 0;
+
             if (!ModelState.IsValid)
             {
                 await PopulateDropdowns(model);
                 return View(model);
             }
 
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+
             if (product == null) return NotFound();
 
-            // Duplicate SKU check
-            var exists = await _context.Products.AnyAsync(p => p.Id != id && p.SKU.ToLower() == model.SKU.ToLower());
+            var exists = await _context.Products
+                .AnyAsync(p => p.TenantId == tenantId && p.Id != id && p.SKU.ToLower() == model.SKU.ToLower());
+
             if (exists)
             {
                 ModelState.AddModelError(nameof(model.SKU), "This SKU already exists.");
@@ -213,29 +227,32 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Products/Delete/5
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
-                .FirstOrDefaultAsync(p => p.Id == id);
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
 
             if (product == null) return NotFound();
             return View(product);
         }
 
-        // POST: /Products/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+
             if (product == null) return NotFound();
 
-            // Soft delete
             product.IsActive = false;
             product.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -244,15 +261,18 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // Helper
         private async Task PopulateDropdowns(ProductFormViewModel model)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             model.Categories = await _context.Categories
+                .Where(c => c.TenantId == tenantId)
                 .OrderBy(c => c.Name)
                 .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
                 .ToListAsync();
 
             model.Suppliers = await _context.Suppliers
+                .Where(s => s.TenantId == tenantId)
                 .OrderBy(s => s.Name)
                 .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Name })
                 .ToListAsync();

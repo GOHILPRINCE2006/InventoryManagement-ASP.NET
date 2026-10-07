@@ -2,11 +2,15 @@ using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using InventoryManagementSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 
 builder.Services.AddIdentity<ApplicationUser, Role>(options =>
 {
@@ -34,6 +38,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddControllersWithViews();
+
+
 
 var app = builder.Build();
 

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventoryManagementSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261002075821_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20261007053556_AddMultiTenancy")]
+    partial class AddMultiTenancy
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -83,6 +83,9 @@ namespace InventoryManagementSystem.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -99,6 +102,8 @@ namespace InventoryManagementSystem.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -123,9 +128,12 @@ namespace InventoryManagementSystem.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
                     b.ToTable("Categories");
@@ -159,7 +167,12 @@ namespace InventoryManagementSystem.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Customers");
                 });
@@ -212,6 +225,9 @@ namespace InventoryManagementSystem.Migrations
                     b.Property<int?>("SupplierId")
                         .HasColumnType("int");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -219,10 +235,10 @@ namespace InventoryManagementSystem.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("SKU")
-                        .IsUnique();
-
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("TenantId", "SKU")
+                        .IsUnique();
 
                     b.ToTable("Products");
                 });
@@ -250,6 +266,9 @@ namespace InventoryManagementSystem.Migrations
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -260,12 +279,12 @@ namespace InventoryManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PurchaseNumber")
-                        .IsUnique();
-
                     b.HasIndex("SupplierId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "PurchaseNumber")
+                        .IsUnique();
 
                     b.ToTable("Purchases");
                 });
@@ -361,6 +380,9 @@ namespace InventoryManagementSystem.Migrations
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -373,10 +395,10 @@ namespace InventoryManagementSystem.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("InvoiceNumber")
-                        .IsUnique();
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "InvoiceNumber")
+                        .IsUnique();
 
                     b.ToTable("Sales");
                 });
@@ -437,6 +459,9 @@ namespace InventoryManagementSystem.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("datetime2");
 
@@ -452,6 +477,8 @@ namespace InventoryManagementSystem.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserId");
 
@@ -490,9 +517,54 @@ namespace InventoryManagementSystem.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Suppliers");
+                });
+
+            modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Tenant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Tenants");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -601,6 +673,39 @@ namespace InventoryManagementSystem.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("InventoryManagementSystem.Models.Entities.ApplicationUser", b =>
+                {
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Users")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Category", b =>
+                {
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Categories")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Customer", b =>
+                {
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Customers")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Product", b =>
                 {
                     b.HasOne("InventoryManagementSystem.Models.Entities.Category", "Category")
@@ -614,9 +719,17 @@ namespace InventoryManagementSystem.Migrations
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Products")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Category");
 
                     b.Navigation("Supplier");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Purchase", b =>
@@ -627,6 +740,12 @@ namespace InventoryManagementSystem.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Purchases")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("InventoryManagementSystem.Models.Entities.ApplicationUser", "User")
                         .WithMany("Purchases")
                         .HasForeignKey("UserId")
@@ -634,6 +753,8 @@ namespace InventoryManagementSystem.Migrations
                         .IsRequired();
 
                     b.Navigation("Supplier");
+
+                    b.Navigation("Tenant");
 
                     b.Navigation("User");
                 });
@@ -665,6 +786,12 @@ namespace InventoryManagementSystem.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Sales")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("InventoryManagementSystem.Models.Entities.ApplicationUser", "User")
                         .WithMany("Sales")
                         .HasForeignKey("UserId")
@@ -672,6 +799,8 @@ namespace InventoryManagementSystem.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+
+                    b.Navigation("Tenant");
 
                     b.Navigation("User");
                 });
@@ -703,6 +832,12 @@ namespace InventoryManagementSystem.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("StockTransactions")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("InventoryManagementSystem.Models.Entities.ApplicationUser", "User")
                         .WithMany("StockTransactions")
                         .HasForeignKey("UserId")
@@ -711,7 +846,20 @@ namespace InventoryManagementSystem.Migrations
 
                     b.Navigation("Product");
 
+                    b.Navigation("Tenant");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Supplier", b =>
+                {
+                    b.HasOne("InventoryManagementSystem.Models.Entities.Tenant", "Tenant")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -808,6 +956,25 @@ namespace InventoryManagementSystem.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("Purchases");
+                });
+
+            modelBuilder.Entity("InventoryManagementSystem.Models.Entities.Tenant", b =>
+                {
+                    b.Navigation("Categories");
+
+                    b.Navigation("Customers");
+
+                    b.Navigation("Products");
+
+                    b.Navigation("Purchases");
+
+                    b.Navigation("Sales");
+
+                    b.Navigation("StockTransactions");
+
+                    b.Navigation("Suppliers");
+
+                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

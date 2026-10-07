@@ -1,6 +1,7 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,17 +15,21 @@ namespace InventoryManagementSystem.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ICurrentTenantService _tenantService;
 
-        public SalesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public SalesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ICurrentTenantService tenantService)
         {
             _context = context;
             _userManager = userManager;
+            _tenantService = tenantService;
         }
 
-        // GET: /Sales
         public async Task<IActionResult> Index()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var sales = await _context.Sales
+                .Where(s => s.TenantId == tenantId)
                 .Include(s => s.Customer)
                 .Include(s => s.User)
                 .Include(s => s.SaleItems)
@@ -34,21 +39,22 @@ namespace InventoryManagementSystem.Controllers
             return View(sales);
         }
 
-        // GET: /Sales/Details/5
         public async Task<IActionResult> Details(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var sale = await _context.Sales
+                .Where(s => s.Id == id && s.TenantId == tenantId)
                 .Include(s => s.Customer)
                 .Include(s => s.User)
                 .Include(s => s.SaleItems)
                     .ThenInclude(si => si.Product)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync();
 
             if (sale == null) return NotFound();
             return View(sale);
         }
 
-        // GET: /Sales/Create
         public async Task<IActionResult> Create()
         {
             var model = new SaleCreateViewModel();
@@ -56,7 +62,6 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Sales/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SaleCreateViewModel model)
@@ -72,7 +77,9 @@ namespace InventoryManagementSystem.Controllers
                 return View(model);
             }
 
-            var validItems = model.Items.Where(i => i.ProductId > 0 && i.Quantity > 0).ToList();
+            var validItems = model.Items?
+                .Where(i => i.ProductId > 0 && i.Quantity > 0)
+                .ToList() ?? new List<SaleLineItemViewModel>();
 
             if (!validItems.Any())
             {
@@ -81,13 +88,16 @@ namespace InventoryManagementSystem.Controllers
                 return View(model);
             }
 
-            // ============ STOCK VALIDATION ============
+            var tenantId = _tenantService.TenantId ?? 0;
+
             foreach (var item in validItems)
             {
-                var product = await _context.Products.FindAsync(item.ProductId);
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == tenantId);
+
                 if (product == null)
                 {
-                    ModelState.AddModelError("", $"Product not found.");
+                    ModelState.AddModelError("", "Product not found.");
                     await PopulateDropdowns(model);
                     return View(model);
                 }
@@ -112,7 +122,7 @@ namespace InventoryManagementSystem.Controllers
                 if (currentUser == null)
                     return RedirectToAction("Login", "Account");
 
-                var invoiceNumber = await GenerateInvoiceNumberAsync();
+                var invoiceNumber = await GenerateInvoiceNumberAsync(tenantId);
 
                 var sale = new Sale
                 {
@@ -122,7 +132,8 @@ namespace InventoryManagementSystem.Controllers
                     Notes = model.Notes,
                     Discount = model.Discount,
                     UserId = currentUser.Id,
-                    TotalAmount = 0
+                    TotalAmount = 0,
+                    TenantId = tenantId
                 };
 
                 _context.Sales.Add(sale);
@@ -132,7 +143,8 @@ namespace InventoryManagementSystem.Controllers
 
                 foreach (var item in validItems)
                 {
-                    var product = await _context.Products.FindAsync(item.ProductId);
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == tenantId);
                     if (product == null) continue;
 
                     var subTotal = item.Quantity * item.UnitPrice;
@@ -147,7 +159,6 @@ namespace InventoryManagementSystem.Controllers
                         SubTotal = subTotal
                     });
 
-                    // ✅ Stock decreases
                     product.Quantity -= item.Quantity;
                     product.UpdatedAt = DateTime.UtcNow;
 
@@ -157,9 +168,10 @@ namespace InventoryManagementSystem.Controllers
                         Type = "OUT",
                         Quantity = item.Quantity,
                         Reference = invoiceNumber,
-                        Notes = $"Sale to customer",
+                        Notes = "Sale to customer",
                         UserId = currentUser.Id,
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        TenantId = tenantId
                     });
                 }
 
@@ -180,30 +192,33 @@ namespace InventoryManagementSystem.Controllers
             }
         }
 
-        private async Task<string> GenerateInvoiceNumberAsync()
+        private async Task<string> GenerateInvoiceNumberAsync(int tenantId)
         {
             var year = DateTime.Now.Year;
             var count = await _context.Sales
-                .CountAsync(s => s.SaleDate.Year == year) + 1;
+                .CountAsync(s => s.TenantId == tenantId && s.SaleDate.Year == year) + 1;
             return $"INV-{year}-{count:D4}";
         }
 
         private async Task PopulateDropdowns(SaleCreateViewModel model)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             model.Customers = await _context.Customers
+                .Where(c => c.TenantId == tenantId)
                 .OrderBy(c => c.Name)
                 .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
                 .ToListAsync();
 
             model.Products = await _context.Products
-                .Where(p => p.IsActive && p.Quantity > 0)
+                .Where(p => p.TenantId == tenantId && p.IsActive && p.Quantity > 0)
                 .OrderBy(p => p.Name)
                 .Select(p => new ProductOption
                 {
                     Id = p.Id,
                     Name = p.Name,
                     SKU = p.SKU,
-                    CostPrice = p.Price  // For sales, we use Price as default
+                    CostPrice = p.Price
                 })
                 .ToListAsync();
         }

@@ -1,5 +1,6 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,29 +11,34 @@ namespace InventoryManagementSystem.Controllers
     public class ReportsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentTenantService _tenantService;
 
-        public ReportsController(ApplicationDbContext context)
+        public ReportsController(ApplicationDbContext context, ICurrentTenantService tenantService)
         {
             _context = context;
+            _tenantService = tenantService;
         }
 
-        // GET: /Reports
         public IActionResult Index()
         {
             return View();
         }
 
-        // GET: /Reports/Sales
         public async Task<IActionResult> Sales(DateTime? from, DateTime? to, int? customerId)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var fromDate = from ?? DateTime.Today.AddDays(-30);
             var toDate = to ?? DateTime.Today;
 
             var query = _context.Sales
-                .Include(s => s.Customer)
-                .Include(s => s.User)
-                .Include(s => s.SaleItems).ThenInclude(si => si.Product)
-                .Where(s => s.SaleDate >= fromDate && s.SaleDate <= toDate.AddDays(1));
+    .Include(s => s.Customer)
+    .Include(s => s.User)
+    .Include(s => s.SaleItems).ThenInclude(si => si.Product)
+    .Where(s => s.TenantId == tenantId
+        && s.SaleDate >= fromDate
+        && s.SaleDate <= toDate.AddDays(1))
+    .AsQueryable();
 
             if (customerId.HasValue && customerId.Value > 0)
                 query = query.Where(s => s.CustomerId == customerId.Value);
@@ -67,6 +73,7 @@ namespace InventoryManagementSystem.Controllers
                 TotalSalesAmount = sales.Sum(s => s.TotalAmount),
                 TotalSalesCount = sales.Count,
                 Customers = await _context.Customers
+                    .Where(c => c.TenantId == tenantId)
                     .OrderBy(c => c.Name)
                     .Select(c => new DropdownItem { Id = c.Id, Name = c.Name })
                     .ToListAsync()
@@ -75,13 +82,14 @@ namespace InventoryManagementSystem.Controllers
             return View(vm);
         }
 
-        // GET: /Reports/Inventory
         public async Task<IActionResult> Inventory(int? categoryId)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
-                .Where(p => p.IsActive);
+                .Where(p => p.TenantId == tenantId && p.IsActive);
 
             if (categoryId.HasValue && categoryId.Value > 0)
                 query = query.Where(p => p.CategoryId == categoryId.Value);
@@ -107,6 +115,7 @@ namespace InventoryManagementSystem.Controllers
                 TotalInventoryItems = products.Count,
                 TotalInventoryValue = products.Sum(p => p.Quantity * p.CostPrice),
                 Categories = await _context.Categories
+                    .Where(c => c.TenantId == tenantId)
                     .OrderBy(c => c.Name)
                     .Select(c => new DropdownItem { Id = c.Id, Name = c.Name })
                     .ToListAsync(),

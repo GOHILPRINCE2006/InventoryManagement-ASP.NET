@@ -1,6 +1,7 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.Entities;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +12,20 @@ namespace InventoryManagementSystem.Controllers
     public class SuppliersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentTenantService _tenantService;
 
-        public SuppliersController(ApplicationDbContext context)
+        public SuppliersController(ApplicationDbContext context, ICurrentTenantService tenantService)
         {
             _context = context;
+            _tenantService = tenantService;
         }
 
-        // GET: /Suppliers
         public async Task<IActionResult> Index()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var suppliers = await _context.Suppliers
+                .Where(s => s.TenantId == tenantId)
                 .Select(s => new SupplierViewModel
                 {
                     Id = s.Id,
@@ -37,11 +42,12 @@ namespace InventoryManagementSystem.Controllers
             return View(suppliers);
         }
 
-        // GET: /Suppliers/Details/5
         public async Task<IActionResult> Details(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var supplier = await _context.Suppliers
-                .Where(s => s.Id == id)
+                .Where(s => s.Id == id && s.TenantId == tenantId)
                 .Select(s => new SupplierViewModel
                 {
                     Id = s.Id,
@@ -58,14 +64,9 @@ namespace InventoryManagementSystem.Controllers
             return View(supplier);
         }
 
-        // GET: /Suppliers/Create
         [Authorize(Roles = "Admin,Manager")]
-        public IActionResult Create()
-        {
-            return View();
-        }
+        public IActionResult Create() => View();
 
-        // POST: /Suppliers/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
@@ -74,6 +75,8 @@ namespace InventoryManagementSystem.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var supplier = new Supplier
             {
                 Name = model.Name,
@@ -81,7 +84,8 @@ namespace InventoryManagementSystem.Controllers
                 Phone = model.Phone,
                 Email = model.Email,
                 Address = model.Address,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TenantId = tenantId
             };
 
             _context.Suppliers.Add(supplier);
@@ -91,14 +95,17 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Suppliers/Edit/5
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Edit(int id)
         {
-            var supplier = await _context.Suppliers.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var supplier = await _context.Suppliers
+                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
+
             if (supplier == null) return NotFound();
 
-            var model = new SupplierViewModel
+            return View(new SupplierViewModel
             {
                 Id = supplier.Id,
                 Name = supplier.Name,
@@ -106,12 +113,9 @@ namespace InventoryManagementSystem.Controllers
                 Phone = supplier.Phone,
                 Email = supplier.Email,
                 Address = supplier.Address
-            };
-
-            return View(model);
+            });
         }
 
-        // POST: /Suppliers/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
@@ -120,7 +124,11 @@ namespace InventoryManagementSystem.Controllers
             if (id != model.Id) return NotFound();
             if (!ModelState.IsValid) return View(model);
 
-            var supplier = await _context.Suppliers.FindAsync(id);
+            var tenantId = _tenantService.TenantId ?? 0;
+
+            var supplier = await _context.Suppliers
+                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
+
             if (supplier == null) return NotFound();
 
             supplier.Name = model.Name;
@@ -135,12 +143,13 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Suppliers/Delete/5
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var supplier = await _context.Suppliers
-                .Where(s => s.Id == id)
+                .Where(s => s.Id == id && s.TenantId == tenantId)
                 .Select(s => new SupplierViewModel
                 {
                     Id = s.Id,
@@ -157,15 +166,16 @@ namespace InventoryManagementSystem.Controllers
             return View(supplier);
         }
 
-        // POST: /Suppliers/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var supplier = await _context.Suppliers
                 .Include(s => s.Products)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
 
             if (supplier == null) return NotFound();
 

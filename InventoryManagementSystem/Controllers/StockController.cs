@@ -1,5 +1,6 @@
 ﻿using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models.ViewModels;
+using InventoryManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,32 +11,40 @@ namespace InventoryManagementSystem.Controllers
     public class StockController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentTenantService _tenantService;
 
-        public StockController(ApplicationDbContext context)
+        public StockController(ApplicationDbContext context, ICurrentTenantService tenantService)
         {
             _context = context;
+            _tenantService = tenantService;
         }
 
-        // GET: /Stock
         public async Task<IActionResult> Index()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var vm = new StockDashboardViewModel
             {
-                TotalProducts = await _context.Products.CountAsync(p => p.IsActive),
-                LowStockCount = await _context.Products.CountAsync(p => p.IsActive && p.Quantity > 0 && p.Quantity <= p.MinStockLevel),
-                OutOfStockCount = await _context.Products.CountAsync(p => p.IsActive && p.Quantity == 0),
+                TotalProducts = await _context.Products
+                    .CountAsync(p => p.TenantId == tenantId && p.IsActive),
+                LowStockCount = await _context.Products
+                    .CountAsync(p => p.TenantId == tenantId && p.IsActive && p.Quantity > 0 && p.Quantity <= p.MinStockLevel),
+                OutOfStockCount = await _context.Products
+                    .CountAsync(p => p.TenantId == tenantId && p.IsActive && p.Quantity == 0),
                 TotalStockValue = await _context.Products
-                    .Where(p => p.IsActive)
+                    .Where(p => p.TenantId == tenantId && p.IsActive)
                     .SumAsync(p => (decimal?)(p.Quantity * p.CostPrice)) ?? 0
             };
 
             return View(vm);
         }
 
-        // GET: /Stock/History
         public async Task<IActionResult> History(string? type, int? productId)
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var query = _context.StockTransactions
+                .Where(t => t.TenantId == tenantId)
                 .Include(t => t.Product)
                 .Include(t => t.User)
                 .AsQueryable();
@@ -69,7 +78,7 @@ namespace InventoryManagementSystem.Controllers
                 FilterType = type,
                 FilterProductId = productId,
                 Products = await _context.Products
-                    .Where(p => p.IsActive)
+                    .Where(p => p.TenantId == tenantId && p.IsActive)
                     .OrderBy(p => p.Name)
                     .Select(p => new DropdownItemVM { Id = p.Id, Name = p.Name })
                     .ToListAsync()
@@ -78,13 +87,14 @@ namespace InventoryManagementSystem.Controllers
             return View(vm);
         }
 
-        // GET: /Stock/LowStock
         public async Task<IActionResult> LowStock()
         {
+            var tenantId = _tenantService.TenantId ?? 0;
+
             var products = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
-                .Where(p => p.IsActive && p.Quantity <= p.MinStockLevel)
+                .Where(p => p.TenantId == tenantId && p.IsActive && p.Quantity <= p.MinStockLevel)
                 .OrderBy(p => p.Quantity)
                 .Select(p => new LowStockItemVM
                 {

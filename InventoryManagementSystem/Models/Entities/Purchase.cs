@@ -8,7 +8,7 @@ namespace InventoryManagementSystem.Models.Entities
         public int Id { get; set; }
 
         [Required, StringLength(50)]
-        public string PurchaseNumber { get; set; } = string.Empty; 
+        public string PurchaseNumber { get; set; } = string.Empty;
 
         public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;
 
@@ -18,6 +18,11 @@ namespace InventoryManagementSystem.Models.Entities
         [StringLength(500)]
         public string? Notes { get; set; }
 
+        // ⭐ NEW: Tenant relationship
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+
+        // Existing relationships
         public int SupplierId { get; set; }
         public Supplier Supplier { get; set; } = null!;
 
