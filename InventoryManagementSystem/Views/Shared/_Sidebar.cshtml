@@ -18,11 +18,7 @@
         </a>
     </li>
 
-    <li class="nav-item mb-1">
-        <a asp-controller="Stock" asp-action="Index" class="nav-link p-0 @Active("Stock")">
-            Stock
-        </a>
-    </li>
+
 
     @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
     {

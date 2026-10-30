@@ -24,7 +24,7 @@ namespace InventoryManagementSystem.Controllers
 
             var tenantId = _tenantService.TenantId ?? 0;
 
-            // ⭐ NEW: Load tenant info for Admin
+            //Load tenant info for Admin
             var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
             ViewBag.ShopName = tenant?.Name ?? "—";
             ViewBag.ShopCode = tenant?.Code ?? "—";

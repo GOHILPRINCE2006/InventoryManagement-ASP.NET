@@ -26,7 +26,6 @@ namespace InventoryManagementSystem.Controllers
             _context = context;
         }
 
-        // GET: /Account/Login
         [HttpGet]
         [AllowAnonymous]
         public IActionResult Login(string? returnUrl = null)
@@ -37,7 +36,6 @@ namespace InventoryManagementSystem.Controllers
             return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
-        // POST: /Account/Login
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -59,7 +57,6 @@ namespace InventoryManagementSystem.Controllers
 
             if (result.Succeeded)
             {
-                // Ensure TenantId claim exists
                 var claims = await _userManager.GetClaimsAsync(user);
                 if (!claims.Any(c => c.Type == "TenantId"))
                 {
@@ -79,7 +76,6 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // GET: /Account/Register
         [HttpGet]
         [AllowAnonymous]
         public IActionResult Register()
@@ -90,7 +86,6 @@ namespace InventoryManagementSystem.Controllers
             return View(new RegisterViewModel());
         }
 
-        // POST: /Account/Register
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -99,7 +94,6 @@ namespace InventoryManagementSystem.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Check email uniqueness
             var existing = await _userManager.FindByEmailAsync(model.Email);
             if (existing != null)
             {
@@ -110,7 +104,6 @@ namespace InventoryManagementSystem.Controllers
             int tenantId;
             string roleName;
 
-            // ============ FLOW 1: Create new shop ============
             if (model.AccountType == "CreateShop")
             {
                 if (string.IsNullOrWhiteSpace(model.ShopName))
@@ -119,7 +112,6 @@ namespace InventoryManagementSystem.Controllers
                     return View(model);
                 }
 
-                // Generate unique shop code from shop name
                 var shopCode = await GenerateUniqueShopCodeAsync(model.ShopName);
 
                 var newTenant = new Tenant
@@ -134,9 +126,8 @@ namespace InventoryManagementSystem.Controllers
                 await _context.SaveChangesAsync();
 
                 tenantId = newTenant.Id;
-                roleName = "Admin";  // Creator becomes Admin
+                roleName = "Admin";  
             }
-            // ============ FLOW 2: Join existing shop ============
             else
             {
                 if (string.IsNullOrWhiteSpace(model.ShopCode))
@@ -155,10 +146,9 @@ namespace InventoryManagementSystem.Controllers
                 }
 
                 tenantId = tenant.Id;
-                roleName = "Employee";  // Joiner becomes Employee
+                roleName = "Employee";  
             }
 
-            // Create the user
             var user = new ApplicationUser
             {
                 UserName = model.Email,
@@ -205,14 +195,12 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction("Login", "Account");
         }
 
-        // GET: /Account/AccessDenied
         [HttpGet]
         public IActionResult AccessDenied()
         {
             return View();
         }
 
-        // GET: /Account/Profile
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> Profile()
@@ -239,7 +227,6 @@ namespace InventoryManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: /Account/Profile
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -270,15 +257,12 @@ namespace InventoryManagementSystem.Controllers
             return RedirectToAction(nameof(Profile));
         }
 
-        // ============ HELPER: Generate unique shop code ============
         private async Task<string> GenerateUniqueShopCodeAsync(string shopName)
         {
-            // Take first 6 letters, uppercase, remove non-alphanumeric
             var baseCode = Regex.Replace(shopName.ToUpper(), "[^A-Z0-9]", "");
             if (baseCode.Length > 8) baseCode = baseCode.Substring(0, 8);
             if (string.IsNullOrEmpty(baseCode)) baseCode = "SHOP";
 
-            // Try base code first
             var code = baseCode;
             var counter = 1;
 

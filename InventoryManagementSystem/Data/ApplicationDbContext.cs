@@ -219,7 +219,6 @@ namespace InventoryManagementSystem.Data
                     .HasForeignKey(st => st.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // ⭐ Tenant relationship
                 entity.HasOne(st => st.Tenant)
                     .WithMany(t => t.StockTransactions)
                     .HasForeignKey(st => st.TenantId)
